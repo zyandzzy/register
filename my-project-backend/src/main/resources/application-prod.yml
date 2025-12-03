@@ -1,0 +1,50 @@
+#生产环境配置
+server:
+  port: 8081
+springdoc:
+  api-docs:
+    enabled: false
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+spring:
+  mail:
+    host: smtp.163.com
+    username: 18827561151@163.com
+    password: PQxg74gCb68DaE8h
+  rabbitmq:
+    addresses: localhost
+    username: admin
+    password: admin
+    virtual-host: /
+  datasource:
+    url: jdbc:mysql://localhost:3306/test
+    username: root
+    password: zy20050812
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  security:
+    jwt:
+      key: 'abcdefghijklmn'
+      expire: 72
+      limit:
+        base: 10
+        upgrade: 300
+        frequency: 30
+    filter:
+      order: -100
+  web:
+    verify:
+      mail-limit: 60
+    flow:
+      period: 3
+      limit: 10
+      block: 30
+    cors:
+      origin: '*'
+      credentials: false
+      methods: '*'
+  data:
+    redis:
+      database: 0
+      host: localhost
+      port: 6379
