@@ -2,20 +2,25 @@
 import {get, logout} from '@/net'
 import router from "@/router";
 import {useStore} from "@/store";
-import {ref} from "vue";
+import {reactive, ref} from "vue";
 import {
+  Back,
   Bell, Calendar,
   ChatDotSquare, Collection, DataLine,
-  Document, Files, IceCream,
-  Location, Lock, Monitor,
+  Document, Files,
+  Location, Lock, Message, Monitor,
   Notification, Operation,
   Position,
-  School,
+  School, Search,
   Umbrella, User
 } from "@element-plus/icons-vue";
 
 const store = useStore()
 const loading = ref(true)
+const searchInput = reactive({
+  type: '1',
+  text: ''
+})
 
 get("api/user/info", (data) => {
   store.user = data
@@ -32,13 +37,47 @@ function userLogout() {
     <el-container style="height: 100vh" v-if="!loading">
       <el-header class="main-content-header">
         <el-image class="logo" src="https://th.bing.com/th/id/OSAAS.2AF8D47DEA75F028F377DABC19B3040C?w=72&h=72&c=17&rs=1&o=6&dpr=1.3&pid=TechQna"></el-image>
-        <div style="flex: 1" class="user-info">
+        <div style="flex: 1; padding: 0 20px; text-align: center;">
+            <el-input v-model="searchInput.text" style="width:100%; max-width: 500px" placeholder="搜索论坛相关内容···" >
+              <template #prefix>
+                <el-icon><Search/></el-icon>
+              </template>
+              <template #append>
+                <el-select style="width: 120px" v-model="searchInput.type">
+                  <el-option value="1" label="帖子广场"/>
+                  <el-option value="2" label="校园活动"/>
+                  <el-option value="3" label="表白墙"/>
+                  <el-option value="4" label="教务通知"/>
+                </el-select>
+              </template>
+            </el-input>
+        </div>
+        <div  class="user-info">
           <div class="profile">
             <div>{{store.user.username}}</div>
             <div>{{store.user.email}}</div>
           </div>
+          <div>
+            <el-dropdown>
+              <el-avatar src="https://www.itbaima.cn/image/avatar/default.webp"></el-avatar>
+              <template #dropdown>
+                <el-dropdown-item>
+                 <el-icon><operation/></el-icon>
+                  个人设置
+                </el-dropdown-item>
+                <el-dropdown-item>
+                  <el-icon><message/></el-icon>
+                  消息列表
+                </el-dropdown-item>
+                <el-dropdown-item @click="userLogout" divided>
+                  <el-icon><back/></el-icon>
+                  退出登录
+                </el-dropdown-item>
 
-          <el-avatar src="https://www.itbaima.cn/image/avatar/default.webp"></el-avatar>
+              </template>
+            </el-dropdown>
+          </div>
+
         </div>
 
       </el-header>
@@ -178,21 +217,27 @@ function userLogout() {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+
+    .el-avatar:hover {
+      cursor: pointer;
+    }
+
+    .profile {
+      text-align: right;
+      margin-right: 20px;
+
+      :first-child {
+        font-weight: bold;
+        font-size: 25px;
+        line-height: 30px;
+      }
+      :last-child {
+        font-size: 18px;
+        color: grey;
+      }
+    }
   }
 
-  .profile {
-    text-align: right;
-    margin-right: 20px;
 
-    :first-child {
-      font-weight: bold;
-      font-size: 25px;
-      line-height: 30px;
-    }
-    :last-child {
-      font-size: 18px;
-      color: grey;
-    }
-  }
 }
 </style>
