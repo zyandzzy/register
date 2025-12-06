@@ -82,7 +82,7 @@ function userLogout() {
 
       </el-header>
       <el-container>
-        <el-aside width="200px">
+        <el-aside width="300px">
           <el-scrollbar style="height: calc(100vh - 75px)">
             <el-menu
                 router
