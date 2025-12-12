@@ -92,6 +92,32 @@ const formatDate = (date) => {
   return new Date(date).toLocaleString('zh-CN')
 }
 
+const refreshAllData = async () => {
+  loading.value = true
+  logsLoading.value = true
+  try {
+    await Promise.all([
+      new Promise((resolve, reject) => {
+        get('api/task-log/statistics', (data) => {
+          statistics.value = data
+          resolve()
+        }, reject)
+      }),
+      new Promise((resolve, reject) => {
+        get('api/task-log/user-logs', (data) => {
+          userLogs.value = data
+          resolve()
+        }, reject)
+      })
+    ])
+  } catch (error) {
+    ElMessage.error('刷新数据失败')
+  } finally {
+    loading.value = false
+    logsLoading.value = false
+  }
+}
+
 // 计算百分比
 const getPercentage = (value, total) => {
   if (total === 0) return 0
@@ -120,7 +146,7 @@ onMounted(() => {
             <el-icon style="margin-right: 5px"><DataLine/></el-icon>
             <span>任务数据分析</span>
           </div>
-          <el-button type="primary" @click="loadStatistics(); loadUserLogs()">
+          <el-button type="primary" @click="refreshAllData">
             <el-icon><Refresh/></el-icon>
             刷新数据
           </el-button>

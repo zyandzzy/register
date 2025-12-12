@@ -106,9 +106,13 @@ public class TaskLogServiceImpl extends ServiceImpl<TaskLogMapper, TaskLog> impl
             return "日志不存在或无权限删除";
         }
         
-        if (this.removeById(logId)) {
-            return null;
+        try {
+            if (this.removeById(logId)) {
+                return null;
+            }
+            return "删除日志失败：数据库操作失败";
+        } catch (Exception e) {
+            return "删除日志失败：" + e.getMessage();
         }
-        return "删除日志失败";
     }
 }
