@@ -2,7 +2,7 @@
 import {ref, reactive, onMounted} from 'vue'
 import {get, post, deleteRequest} from '@/net'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {Plus, Delete, Edit, Calendar, InfoFilled} from '@element-plus/icons-vue'
+import {Plus, Delete, Edit, Calendar} from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const tasks = ref([])
@@ -130,7 +130,7 @@ const deleteTask = (task) => {
         type: 'warning',
       }
   ).then(() => {
-    post(`api/task/delete/${task.id}`, {}, () => {
+    deleteRequest(`api/task/delete/${task.id}`, () => {
       ElMessage.success('任务删除成功')
       loadTasks()
     }, (message) => {
