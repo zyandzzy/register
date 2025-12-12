@@ -143,12 +143,6 @@ function userLogout() {
                     课程表
                   </template>
                 </el-menu-item>
-                <el-menu-item index="/index/task-management">
-                  <template #title>
-                    <el-icon><calendar/></el-icon>
-                    任务清单
-                  </template>
-                </el-menu-item>
                 <el-menu-item>
                   <template #title>
                     <el-icon><monitor/></el-icon>
@@ -169,6 +163,24 @@ function userLogout() {
                 </el-menu-item>
               </el-sub-menu>
               <el-sub-menu index="3">
+                <template #title>
+                  <el-icon><operation/></el-icon>
+                  任务系统
+                </template>
+                <el-menu-item index="/index/task-management">
+                  <template #title>
+                    <el-icon><calendar/></el-icon>
+                    任务管理
+                  </template>
+                </el-menu-item>
+                <el-menu-item index="/index/task-data">
+                  <template #title>
+                    <el-icon><data-line/></el-icon>
+                    数据分析
+                  </template>
+                </el-menu-item>
+              </el-sub-menu>
+              <el-sub-menu index="4">
                 <template #title>
                   <el-icon><operation/></el-icon>
                   个人设置
