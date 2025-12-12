@@ -1,10 +1,14 @@
 <script setup>
 import {ref, reactive, onMounted} from 'vue'
-import {get} from '@/net'
-import {ElMessage} from 'element-plus'
-import {DataLine, TrendCharts, PieChart, Histogram} from '@element-plus/icons-vue'
+import {get, deleteRequest} from '@/net'
+import {ElMessage, ElMessageBox} from 'element-plus'
+import {DataLine, TrendCharts, PieChart, Histogram, Delete, Refresh} from '@element-plus/icons-vue'
 
 const loading = ref(false)
+const logsLoading = ref(false)
+const activeTab = ref('statistics')
+const userLogs = ref([])
+
 const statistics = ref({
   totalTasks: 0,
   pendingTasks: 0,
@@ -28,6 +32,66 @@ const loadStatistics = () => {
   })
 }
 
+const loadUserLogs = () => {
+  logsLoading.value = true
+  get('api/task-log/user-logs', (data) => {
+    userLogs.value = data
+    logsLoading.value = false
+  }, (message) => {
+    ElMessage.error(message)
+    logsLoading.value = false
+  })
+}
+
+const deleteLog = (log) => {
+  ElMessageBox.confirm(
+      `确定要删除此操作记录吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+  ).then(() => {
+    deleteRequest(`api/task-log/delete/${log.id}`, () => {
+      ElMessage.success('日志删除成功')
+      loadUserLogs()
+      loadStatistics() // 刷新统计数据
+    }, (message) => {
+      ElMessage.error(message)
+    })
+  }).catch(() => {
+    // 用户取消删除
+  })
+}
+
+const getActionLabel = (action) => {
+  const map = {
+    'create': '创建',
+    'update': '更新',
+    'delete': '删除',
+    'complete': '完成',
+    'cancel': '取消'
+  }
+  return map[action] || action
+}
+
+const getActionType = (action) => {
+  const map = {
+    'create': 'success',
+    'update': 'warning',
+    'delete': 'danger',
+    'complete': 'success',
+    'cancel': 'info'
+  }
+  return map[action] || ''
+}
+
+const formatDate = (date) => {
+  if (!date) return '-'
+  return new Date(date).toLocaleString('zh-CN')
+}
+
 // 计算百分比
 const getPercentage = (value, total) => {
   if (total === 0) return 0
@@ -43,6 +107,7 @@ const getCompletionRate = () => {
 
 onMounted(() => {
   loadStatistics()
+  loadUserLogs()
 })
 </script>
 
@@ -55,11 +120,16 @@ onMounted(() => {
             <el-icon style="margin-right: 5px"><DataLine/></el-icon>
             <span>任务数据分析</span>
           </div>
-          <el-button type="primary" @click="loadStatistics">刷新数据</el-button>
+          <el-button type="primary" @click="loadStatistics(); loadUserLogs()">
+            <el-icon><Refresh/></el-icon>
+            刷新数据
+          </el-button>
         </div>
       </template>
 
-      <div v-loading="loading">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="统计分析" name="statistics">
+          <div v-loading="loading">
         <!-- 概览统计卡片 -->
         <el-row :gutter="20" style="margin-bottom: 20px">
           <el-col :span="6">
@@ -212,7 +282,48 @@ onMounted(() => {
             去创建任务
           </el-button>
         </el-empty>
-      </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="操作记录" name="logs">
+          <el-table :data="userLogs" v-loading="logsLoading" style="width: 100%" max-height="600">
+            <el-table-column prop="id" label="日志ID" width="80"/>
+            <el-table-column prop="taskId" label="任务ID" width="100"/>
+            <el-table-column label="操作类型" width="100">
+              <template #default="scope">
+                <el-tag :type="getActionType(scope.row.action)">
+                  {{ getActionLabel(scope.row.action) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="操作描述" min-width="200" show-overflow-tooltip/>
+            <el-table-column label="操作时间" width="180">
+              <template #default="scope">
+                {{ formatDate(scope.row.createdAt) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="100" fixed="right">
+              <template #default="scope">
+                <el-button 
+                  link 
+                  type="danger" 
+                  :icon="Delete" 
+                  @click="deleteLog(scope.row)"
+                  size="small"
+                >
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          
+          <el-empty 
+            v-if="userLogs.length === 0 && !logsLoading" 
+            description="暂无操作记录"
+            style="margin-top: 40px"
+          />
+        </el-tab-pane>
+      </el-tabs>
     </el-card>
   </div>
 </template>

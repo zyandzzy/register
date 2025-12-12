@@ -42,6 +42,14 @@ public class TaskLogServiceImpl extends ServiceImpl<TaskLogMapper, TaskLog> impl
         wrapper.orderByDesc("created_at");
         return this.list(wrapper);
     }
+    
+    @Override
+    public List<TaskLog> getUserLogs(int userId) {
+        QueryWrapper<TaskLog> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId);
+        wrapper.orderByDesc("created_at");
+        return this.list(wrapper);
+    }
 
     @Override
     public Map<String, Object> getStatistics(int userId) {
@@ -85,5 +93,22 @@ public class TaskLogServiceImpl extends ServiceImpl<TaskLogMapper, TaskLog> impl
         stats.put("deleteActions", this.count(deleteWrapper));
         
         return stats;
+    }
+    
+    @Override
+    public String deleteLog(int userId, int logId) {
+        QueryWrapper<TaskLog> wrapper = new QueryWrapper<>();
+        wrapper.eq("id", logId);
+        wrapper.eq("user_id", userId);
+        TaskLog log = this.getOne(wrapper);
+        
+        if (log == null) {
+            return "日志不存在或无权限删除";
+        }
+        
+        if (this.removeById(logId)) {
+            return null;
+        }
+        return "删除日志失败";
     }
 }
