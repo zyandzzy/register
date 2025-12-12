@@ -85,12 +85,12 @@ public class TaskServiceImpl implements TaskService {
             return false;
         }
         
-        // Delete task and all children recursively
-        taskMapper.deleteTaskAndChildren(taskId);
-        
-        // Log the operation
+        // Log the operation BEFORE deletion
         String detail = String.format("Deleted task and its sub-tasks: %s", task.getContent());
         taskLogService.createLog(userId, taskId, "DELETE", detail);
+        
+        // Delete task and all children recursively
+        taskMapper.deleteTaskAndChildren(taskId);
         
         return true;
     }

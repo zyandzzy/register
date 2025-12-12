@@ -71,8 +71,11 @@ public class TaskLogServiceImpl implements TaskLogService {
         Map<String, Integer> operationTypeMap = new HashMap<>();
         for (Map<String, Object> stat : opTypeStats) {
             String type = (String) stat.get("operation_type");
-            Long count = (Long) stat.get("count");
-            operationTypeMap.put(type, count.intValue());
+            Object countObj = stat.get("count");
+            if (countObj != null) {
+                Long count = (Long) countObj;
+                operationTypeMap.put(type, count.intValue());
+            }
         }
         stats.setOperationTypeStats(operationTypeMap);
         
@@ -81,8 +84,11 @@ public class TaskLogServiceImpl implements TaskLogService {
         Map<String, Integer> dailyMap = new HashMap<>();
         for (Map<String, Object> stat : dailyStats) {
             String date = stat.get("date").toString();
-            Long count = (Long) stat.get("count");
-            dailyMap.put(date, count.intValue());
+            Object countObj = stat.get("count");
+            if (countObj != null) {
+                Long count = (Long) countObj;
+                dailyMap.put(date, count.intValue());
+            }
         }
         stats.setDailyOperationStats(dailyMap);
         
@@ -91,8 +97,11 @@ public class TaskLogServiceImpl implements TaskLogService {
         Map<String, Integer> completionMap = new HashMap<>();
         for (Map<String, Object> stat : completionStats) {
             String date = stat.get("date").toString();
-            Long count = (Long) stat.get("count");
-            completionMap.put(date, count.intValue());
+            Object countObj = stat.get("count");
+            if (countObj != null) {
+                Long count = (Long) countObj;
+                completionMap.put(date, count.intValue());
+            }
         }
         stats.setCompletionTrend(completionMap);
         

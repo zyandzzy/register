@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import TaskDataStats from '@/components/TaskDataStats.vue'
 import TaskDataLogs from '@/components/TaskDataLogs.vue'
-import { get } from '@/net'
+import { get, deleteRequest } from '@/net'
 
 const activeTab = ref('statistics')
 const statistics = ref(null)
@@ -33,33 +33,11 @@ const loadLogs = () => {
 }
 
 const handleDeleteLog = (logId) => {
-  // Using fetch for DELETE request
-  const token = localStorage.getItem('authorize') || sessionStorage.getItem('authorize')
-  if (!token) {
-    ElMessage.error('未登录')
-    return
-  }
-  
-  const authObj = JSON.parse(token)
-  
-  fetch(`/api/task-log/delete/${logId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${authObj.token}`
-    }
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.code === 200) {
-      ElMessage.success('日志删除成功')
-      loadLogs()
-    } else {
-      ElMessage.error(data.message || '删除失败')
-    }
-  })
-  .catch(error => {
-    ElMessage.error('删除失败')
-    console.error(error)
+  deleteRequest(`/api/task-log/delete/${logId}`, () => {
+    ElMessage.success('日志删除成功')
+    loadLogs()
+  }, (message) => {
+    ElMessage.error(message || '删除失败')
   })
 }
 

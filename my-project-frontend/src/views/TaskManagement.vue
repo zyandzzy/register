@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import TaskList from '@/components/TaskList.vue'
 import TaskForm from '@/components/TaskForm.vue'
-import { get, post } from '@/net'
+import { get, post, deleteRequest } from '@/net'
 import { Plus } from '@element-plus/icons-vue'
 
 const tasks = ref([])
@@ -53,33 +53,11 @@ const handleSubmit = (formData) => {
 }
 
 const handleDelete = (taskId) => {
-  // Using fetch for DELETE request since the net module doesn't have a delete method
-  const token = localStorage.getItem('authorize') || sessionStorage.getItem('authorize')
-  if (!token) {
-    ElMessage.error('未登录')
-    return
-  }
-  
-  const authObj = JSON.parse(token)
-  
-  fetch(`/api/task/delete/${taskId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${authObj.token}`
-    }
-  })
-  .then(response => response.json())
-  .then(data => {
-    if (data.code === 200) {
-      ElMessage.success('任务删除成功')
-      loadTasks()
-    } else {
-      ElMessage.error(data.message || '删除失败')
-    }
-  })
-  .catch(error => {
-    ElMessage.error('删除失败')
-    console.error(error)
+  deleteRequest(`/api/task/delete/${taskId}`, () => {
+    ElMessage.success('任务删除成功')
+    loadTasks()
+  }, (message) => {
+    ElMessage.error(message || '删除失败')
   })
 }
 
