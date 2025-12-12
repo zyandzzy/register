@@ -1,8 +1,8 @@
 <script setup>
-import {ref, reactive, onMounted} from 'vue'
+import {ref, reactive, onMounted, computed} from 'vue'
 import {get, post, deleteRequest} from '@/net'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {Plus, Delete, Edit, Calendar} from '@element-plus/icons-vue'
+import {Plus, Delete, Edit, Calendar, FolderOpened, Document, Files} from '@element-plus/icons-vue'
 
 const loading = ref(false)
 const tasks = ref([])
@@ -10,7 +10,7 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('创建任务')
 const isEdit = ref(false)
 const currentTaskId = ref(null)
-const parentTaskForSubtask = ref(null) // 用于创建子任务时记录父任务
+const parentTaskForSubtask = ref(null)
 
 const taskForm = reactive({
   title: '',
@@ -35,6 +35,30 @@ const priorityOptions = [
   {label: '紧急', value: 'urgent'}
 ]
 
+// 组织任务为树形结构
+const taskTree = computed(() => {
+  const rootTasks = tasks.value.filter(t => !t.parentId)
+  const childMap = {}
+  
+  tasks.value.forEach(task => {
+    if (task.parentId) {
+      if (!childMap[task.parentId]) {
+        childMap[task.parentId] = []
+      }
+      childMap[task.parentId].push(task)
+    }
+  })
+  
+  const buildTree = (task) => {
+    return {
+      ...task,
+      children: childMap[task.id] || []
+    }
+  }
+  
+  return rootTasks.map(buildTree)
+})
+
 const getStatusTag = (status) => {
   const map = {
     'pending': 'info',
@@ -45,6 +69,16 @@ const getStatusTag = (status) => {
   return map[status] || 'info'
 }
 
+const getStatusColor = (status) => {
+  const map = {
+    'pending': '#909399',
+    'in_progress': '#E6A23C',
+    'completed': '#67C23A',
+    'cancelled': '#F56C6C'
+  }
+  return map[status] || '#909399'
+}
+
 const getPriorityTag = (priority) => {
   const map = {
     'low': 'info',
@@ -53,6 +87,16 @@ const getPriorityTag = (priority) => {
     'urgent': 'danger'
   }
   return map[priority] || ''
+}
+
+const getPriorityIcon = (priority) => {
+  const map = {
+    'low': '🔵',
+    'medium': '🟡',
+    'high': '🟠',
+    'urgent': '🔴'
+  }
+  return map[priority] || '⚪'
 }
 
 const loadTasks = () => {
@@ -165,88 +209,107 @@ onMounted(() => {
 
 <template>
   <div class="task-management">
-    <el-card shadow="never" style="margin: 20px;">
-      <template #header>
-        <div class="card-header">
-          <div>
-            <el-icon style="margin-right: 5px"><Calendar/></el-icon>
-            <span>任务清单</span>
-          </div>
-          <el-button type="primary" :icon="Plus" @click="openCreateDialog">
-            创建任务
-          </el-button>
-        </div>
-      </template>
+    <div class="task-header">
+      <div class="header-title">
+        <el-icon :size="24" color="#409EFF"><Files/></el-icon>
+        <span>任务管理</span>
+      </div>
+      <el-button type="primary" :icon="Plus" @click="openCreateDialog" size="large" round>
+        创建任务
+      </el-button>
+    </div>
 
-      <el-table :data="tasks" v-loading="loading" style="width: 100%">
-        <el-table-column prop="id" label="ID" width="80"/>
-        <el-table-column prop="title" label="任务标题" min-width="200">
-          <template #default="scope">
-            <span v-if="scope.row.parentId" style="color: #909399; margin-right: 5px;">└─</span>
-            {{ scope.row.title }}
-          </template>
-        </el-table-column>
-        <el-table-column label="父任务" width="120">
-          <template #default="scope">
-            <el-tag v-if="scope.row.parentId" size="small" type="info">
-              ID: {{ scope.row.parentId }}
-            </el-tag>
-            <span v-else style="color: #909399;">根任务</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip/>
-        <el-table-column label="状态" width="100">
-          <template #default="scope">
-            <el-tag :type="getStatusTag(scope.row.status)">
-              {{ statusOptions.find(s => s.value === scope.row.status)?.label }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="优先级" width="100">
-          <template #default="scope">
-            <el-tag :type="getPriorityTag(scope.row.priority)">
-              {{ priorityOptions.find(p => p.value === scope.row.priority)?.label }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="截止日期" width="180">
-          <template #default="scope">
-            {{ formatDate(scope.row.dueDate) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="创建时间" width="180">
-          <template #default="scope">
-            {{ formatDate(scope.row.createdAt) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="250" fixed="right">
-          <template #default="scope">
-            <el-button link type="success" :icon="Plus" @click="openCreateSubtaskDialog(scope.row)" size="small">
-              子任务
-            </el-button>
-            <el-button link type="primary" :icon="Edit" @click="openEditDialog(scope.row)" size="small">
-              编辑
-            </el-button>
-            <el-button link type="danger" :icon="Delete" @click="deleteTask(scope.row)" size="small">
-              删除
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <div class="task-content" v-loading="loading">
+      <el-empty v-if="taskTree.length === 0 && !loading" description="暂无任务，点击上方按钮创建新任务" />
+      
+      <div v-else class="task-list">
+        <!-- 根任务卡片 -->
+        <div v-for="rootTask in taskTree" :key="rootTask.id" class="task-group">
+          <div class="task-card root-task" :class="{'completed': rootTask.status === 'completed'}">
+            <div class="task-card-header">
+              <div class="task-title-section">
+                <el-icon :size="20" color="#409EFF"><FolderOpened/></el-icon>
+                <span class="task-title">{{ rootTask.title }}</span>
+                <el-tag :type="getStatusTag(rootTask.status)" size="small" effect="dark">
+                  {{ statusOptions.find(s => s.value === rootTask.status)?.label }}
+                </el-tag>
+              </div>
+              <div class="task-actions">
+                <el-button :icon="Plus" @click="openCreateSubtaskDialog(rootTask)" circle size="small" type="success" title="添加子任务"/>
+                <el-button :icon="Edit" @click="openEditDialog(rootTask)" circle size="small" type="primary" title="编辑"/>
+                <el-button :icon="Delete" @click="deleteTask(rootTask)" circle size="small" type="danger" title="删除"/>
+              </div>
+            </div>
+            
+            <div class="task-card-body">
+              <div class="task-meta">
+                <span class="meta-item">
+                  <span class="meta-label">优先级:</span>
+                  <span>{{ getPriorityIcon(rootTask.priority) }} {{ priorityOptions.find(p => p.value === rootTask.priority)?.label }}</span>
+                </span>
+                <span class="meta-item" v-if="rootTask.dueDate">
+                  <span class="meta-label">截止:</span>
+                  <span>{{ formatDate(rootTask.dueDate) }}</span>
+                </span>
+                <span class="meta-item" v-if="rootTask.children && rootTask.children.length > 0">
+                  <span class="meta-label">子任务:</span>
+                  <span>{{ rootTask.children.length }} 个</span>
+                </span>
+              </div>
+              <div class="task-description" v-if="rootTask.description">
+                {{ rootTask.description }}
+              </div>
+            </div>
+
+            <!-- 子任务列表 -->
+            <div v-if="rootTask.children && rootTask.children.length > 0" class="subtasks">
+              <div class="subtasks-header">
+                <span>子任务列表</span>
+              </div>
+              <div v-for="(subtask, index) in rootTask.children" :key="subtask.id" class="subtask-item">
+                <div class="subtask-connector">
+                  <div class="connector-line" v-if="index < rootTask.children.length - 1"></div>
+                  <div class="connector-dot"></div>
+                </div>
+                <div class="subtask-card" :class="{'completed': subtask.status === 'completed'}">
+                  <div class="subtask-header">
+                    <div class="subtask-title-section">
+                      <el-icon :size="16" color="#67C23A"><Document/></el-icon>
+                      <span class="subtask-title">{{ subtask.title }}</span>
+                      <el-tag :type="getStatusTag(subtask.status)" size="small">
+                        {{ statusOptions.find(s => s.value === subtask.status)?.label }}
+                      </el-tag>
+                    </div>
+                    <div class="subtask-actions">
+                      <el-button :icon="Edit" @click="openEditDialog(subtask)" link type="primary" size="small">编辑</el-button>
+                      <el-button :icon="Delete" @click="deleteTask(subtask)" link type="danger" size="small">删除</el-button>
+                    </div>
+                  </div>
+                  <div class="subtask-meta" v-if="subtask.description || subtask.dueDate">
+                    <span v-if="subtask.description" class="subtask-desc">{{ subtask.description }}</span>
+                    <span v-if="subtask.dueDate" class="subtask-due">📅 {{ formatDate(subtask.dueDate) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- 创建/编辑任务对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
       <el-alert
           v-if="parentTaskForSubtask"
           :title="`为任务 '${parentTaskForSubtask.title}' 创建子任务`"
-          type="info"
+          type="success"
           :closable="false"
+          show-icon
           style="margin-bottom: 20px"
       />
       <el-form :model="taskForm" label-width="100px">
         <el-form-item label="任务标题" required>
-          <el-input v-model="taskForm.title" placeholder="请输入任务标题"/>
+          <el-input v-model="taskForm.title" placeholder="请输入任务标题" clearable/>
         </el-form-item>
         <el-form-item label="任务描述">
           <el-input
@@ -273,7 +336,9 @@ onMounted(() => {
                 :key="item.value"
                 :label="item.label"
                 :value="item.value"
-            />
+            >
+              <span>{{ getPriorityIcon(item.value) }} {{ item.label }}</span>
+            </el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="截止日期">
@@ -299,19 +364,292 @@ onMounted(() => {
 
 <style scoped>
 .task-management {
-  height: 100%;
-  background-color: #f7f8fa;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
-.dark .task-management {
-  background-color: #242628;
-}
-
-.card-header {
+.task-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 18px;
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  backdrop-filter: blur(10px);
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 28px;
   font-weight: bold;
+  color: #303133;
+}
+
+.task-content {
+  min-height: 400px;
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.task-group {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border-left: 5px solid #409EFF;
+}
+
+.task-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.task-card.completed {
+  border-left-color: #67C23A;
+  background: linear-gradient(to right, rgba(103, 194, 58, 0.05), white);
+}
+
+.task-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.task-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.task-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  flex: 1;
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.task-card-body {
+  margin-top: 16px;
+}
+
+.task-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #606266;
+  padding: 6px 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.meta-label {
+  font-weight: 600;
+  color: #909399;
+}
+
+.task-description {
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  color: #606266;
+  line-height: 1.6;
+  margin-top: 12px;
+}
+
+.subtasks {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px dashed #e4e7ed;
+}
+
+.subtasks-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #909399;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subtask-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.subtask-connector {
+  position: relative;
+  width: 24px;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.connector-line {
+  position: absolute;
+  left: 50%;
+  top: 24px;
+  bottom: -12px;
+  width: 2px;
+  background: linear-gradient(to bottom, #67C23A, #e4e7ed);
+  transform: translateX(-50%);
+}
+
+.connector-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #67C23A;
+  border: 3px solid white;
+  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.3);
+  z-index: 1;
+}
+
+.subtask-card {
+  flex: 1;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 16px;
+  border: 2px solid #e4e7ed;
+  transition: all 0.3s ease;
+}
+
+.subtask-card:hover {
+  border-color: #67C23A;
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.15);
+  transform: translateX(4px);
+}
+
+.subtask-card.completed {
+  background: linear-gradient(135deg, rgba(103, 194, 58, 0.1) 0%, #ffffff 100%);
+  border-color: #67C23A;
+}
+
+.subtask-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subtask-title-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.subtask-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.subtask-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.subtask-meta {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subtask-desc {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.5;
+}
+
+.subtask-due {
+  font-size: 13px;
+  color: #909399;
+}
+
+/* 暗色模式适配 */
+.dark .task-management {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.dark .task-header {
+  background: rgba(42, 42, 42, 0.95);
+}
+
+.dark .header-title {
+  color: #e4e7ed;
+}
+
+.dark .task-card {
+  background: #2c2c2c;
+  border-left-color: #409EFF;
+}
+
+.dark .task-title {
+  color: #e4e7ed;
+}
+
+.dark .task-description {
+  background: #363636;
+  color: #c0c4cc;
+}
+
+.dark .meta-item {
+  background: #363636;
+  color: #c0c4cc;
+}
+
+.dark .subtask-card {
+  background: linear-gradient(135deg, #363636 0%, #2c2c2c 100%);
+  border-color: #4c4c4c;
+}
+
+.dark .subtask-title {
+  color: #e4e7ed;
+}
+
+.dark .subtask-desc {
+  color: #c0c4cc;
 }
 </style>
