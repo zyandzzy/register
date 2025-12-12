@@ -5,6 +5,8 @@ springdoc:
   api-docs:
     enabled: false
 mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.entity.dto
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 spring:
