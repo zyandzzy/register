@@ -112,8 +112,21 @@ function get(url, success, failure = defaultFailure) {
     internalGet(url, accessHeader(), success, failure)
 }
 
+function deleteRequest(url, success, failure = defaultFailure) {
+    axios.delete(url, { headers: accessHeader() }).then(({data}) => {
+        if(data.code === 200) {
+            success(data.data)
+        } else if(data.code === 401) {
+            failure('登录状态已过期，请重新登录！')
+            deleteAccessToken(true)
+        } else {
+            failure(data.message, data.code, url)
+        }
+    }).catch(err => defaultError(err))
+}
+
 function unauthorized() {
     return !takeAccessToken()
 }
 
-export { post, get, login, logout, unauthorized }
+export { post, get, deleteRequest, login, logout, unauthorized }

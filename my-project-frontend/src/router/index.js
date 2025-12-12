@@ -32,6 +32,16 @@ const router = createRouter({
                     path: 'user-setting',
                     name: 'user-setting',
                     component: () => import('@/views/settings/UserSetting.vue')
+                },
+                {
+                    path: 'task-management',
+                    name: 'task-management',
+                    component: () => import('@/views/TaskManagement.vue')
+                },
+                {
+                    path: 'task-data',
+                    name: 'task-data',
+                    component: () => import('@/views/TaskDataAnalysis.vue')
                 }
             ]
         }

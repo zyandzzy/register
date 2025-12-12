@@ -3,6 +3,9 @@ springdoc:
   paths-to-match: /api/**
   swagger-ui:
     operations-sorter: alpha
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.entity.dto
 spring:
   mail:
     host: smtp.163.com
