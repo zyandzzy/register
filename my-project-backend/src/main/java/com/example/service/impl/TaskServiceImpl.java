@@ -32,6 +32,8 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         task.setStatus(vo.getStatus() != null ? vo.getStatus() : "pending");
         task.setPriority(vo.getPriority() != null ? vo.getPriority() : "medium");
         task.setParentId(vo.getParentId());
+        task.setStartDate(vo.getStartDate());
+        task.setEndDate(vo.getEndDate());
         task.setDueDate(vo.getDueDate());
         task.setCreatedAt(new Date());
         task.setUpdatedAt(new Date());
@@ -64,6 +66,12 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         }
         if (vo.getParentId() != null) {
             task.setParentId(vo.getParentId());
+        }
+        if (vo.getStartDate() != null) {
+            task.setStartDate(vo.getStartDate());
+        }
+        if (vo.getEndDate() != null) {
+            task.setEndDate(vo.getEndDate());
         }
         if (vo.getDueDate() != null) {
             task.setDueDate(vo.getDueDate());

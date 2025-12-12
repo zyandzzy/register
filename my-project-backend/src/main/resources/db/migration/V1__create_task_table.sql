@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS `task` (
   `status` varchar(50) NOT NULL DEFAULT 'pending' COMMENT '任务状态: pending, in_progress, completed, cancelled',
   `priority` varchar(50) NOT NULL DEFAULT 'medium' COMMENT '优先级: low, medium, high, urgent',
   `parent_id` int DEFAULT NULL COMMENT '父任务ID，用于子任务',
+  `start_date` datetime DEFAULT NULL COMMENT '开始时间',
+  `end_date` datetime DEFAULT NULL COMMENT '结束时间',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `due_date` datetime DEFAULT NULL COMMENT '截止日期',

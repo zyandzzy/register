@@ -33,6 +33,12 @@ public class Task implements BaseData {
     @TableField("parent_id")
     Integer parentId;
     
+    @TableField("start_date")
+    Date startDate;
+    
+    @TableField("end_date")
+    Date endDate;
+    
     @TableField("created_at")
     Date createdAt;
     
