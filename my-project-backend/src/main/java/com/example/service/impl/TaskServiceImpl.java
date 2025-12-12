@@ -100,11 +100,18 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
         
         // 递归删除每个子任务
         for (Task subTask : subTasks) {
-            deleteTaskWithChildren(userId, subTask.getId());
+            try {
+                deleteTaskWithChildren(userId, subTask.getId());
+            } catch (Exception e) {
+                // 如果子任务删除失败，抛出异常终止整个删除操作
+                throw new RuntimeException("删除子任务失败: " + subTask.getTitle(), e);
+            }
         }
         
         // 删除当前任务
-        this.removeById(taskId);
+        if (!this.removeById(taskId)) {
+            throw new RuntimeException("删除任务失败，任务ID: " + taskId);
+        }
     }
 
     @Override
