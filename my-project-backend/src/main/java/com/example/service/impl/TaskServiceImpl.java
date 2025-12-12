@@ -27,7 +27,7 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
     public String createTask(int userId, CreateTaskVO vo) {
         Task task = new Task();
         task.setUserId(userId);
-        task.setTitle(vo.getTitle() != null ? vo.getTitle() : "");
+        task.setTitle(vo.getTitle());
         task.setDescription(vo.getDescription());
         task.setStatus(vo.getStatus() != null ? vo.getStatus() : "pending");
         task.setPriority(vo.getPriority() != null ? vo.getPriority() : "medium");

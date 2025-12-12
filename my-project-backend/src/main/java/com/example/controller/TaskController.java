@@ -44,7 +44,7 @@ public class TaskController {
         return result == null ? RestBean.success() : RestBean.failure(400, result);
     }
 
-    @PostMapping("/delete/{id}")
+    @DeleteMapping("/delete/{id}")
     @Operation(summary = "删除任务")
     public RestBean<Void> deleteTask(@PathVariable int id,
                                       @RequestAttribute(Const.ATTR_USER_ID) int userId) {
