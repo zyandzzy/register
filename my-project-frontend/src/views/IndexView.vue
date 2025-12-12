@@ -143,7 +143,7 @@ function userLogout() {
                     课程表
                   </template>
                 </el-menu-item>
-                <el-menu-item>
+                <el-menu-item index="/index/task-management">
                   <template #title>
                     <el-icon><calendar/></el-icon>
                     任务清单

@@ -18,6 +18,15 @@ spring:
     username: root
     password: zy20050812
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
   security:
     jwt:
       key: 'abcdefghijklmn'
