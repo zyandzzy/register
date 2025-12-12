@@ -73,8 +73,8 @@ public class TaskLogServiceImpl implements TaskLogService {
             String type = (String) stat.get("operation_type");
             Object countObj = stat.get("count");
             if (countObj != null) {
-                Long count = (Long) countObj;
-                operationTypeMap.put(type, count.intValue());
+                int count = ((Number) countObj).intValue();
+                operationTypeMap.put(type, count);
             }
         }
         stats.setOperationTypeStats(operationTypeMap);
@@ -86,8 +86,8 @@ public class TaskLogServiceImpl implements TaskLogService {
             String date = stat.get("date").toString();
             Object countObj = stat.get("count");
             if (countObj != null) {
-                Long count = (Long) countObj;
-                dailyMap.put(date, count.intValue());
+                int count = ((Number) countObj).intValue();
+                dailyMap.put(date, count);
             }
         }
         stats.setDailyOperationStats(dailyMap);
@@ -99,8 +99,8 @@ public class TaskLogServiceImpl implements TaskLogService {
             String date = stat.get("date").toString();
             Object countObj = stat.get("count");
             if (countObj != null) {
-                Long count = (Long) countObj;
-                completionMap.put(date, count.intValue());
+                int count = ((Number) countObj).intValue();
+                completionMap.put(date, count);
             }
         }
         stats.setCompletionTrend(completionMap);

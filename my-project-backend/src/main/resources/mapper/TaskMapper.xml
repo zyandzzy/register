@@ -2,14 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.mapper.TaskMapper">
     
-    <!-- Recursively delete task and all its sub-tasks -->
+    <!-- Recursively delete task and all its sub-tasks with depth limit for safety -->
     <delete id="deleteTaskAndChildren" parameterType="long">
         DELETE FROM db_task WHERE id IN (
             WITH RECURSIVE task_tree AS (
-                SELECT id FROM db_task WHERE id = #{taskId}
+                SELECT id, 1 as depth FROM db_task WHERE id = #{taskId}
                 UNION ALL
-                SELECT t.id FROM db_task t
+                SELECT t.id, tt.depth + 1 
+                FROM db_task t
                 INNER JOIN task_tree tt ON t.parent_id = tt.id
+                WHERE tt.depth &lt; 100
             )
             SELECT id FROM task_tree
         )
