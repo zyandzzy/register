@@ -16,6 +16,8 @@ public class TaskVO {
     String status;
     String priority;
     Integer parentId;
+    Date startDate;
+    Date endDate;
     Date createdAt;
     Date updatedAt;
     Date dueDate;

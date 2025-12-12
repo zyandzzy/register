@@ -14,5 +14,7 @@ public class UpdateTaskVO {
     String status;
     String priority;
     Integer parentId;
+    Date startDate;
+    Date endDate;
     Date dueDate;
 }

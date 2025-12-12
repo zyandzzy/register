@@ -18,6 +18,8 @@ const taskForm = reactive({
   status: 'pending',
   priority: 'medium',
   parentId: null,
+  startDate: null,
+  endDate: null,
   dueDate: null
 })
 
@@ -137,6 +139,8 @@ const openEditDialog = (task) => {
   taskForm.status = task.status
   taskForm.priority = task.priority
   taskForm.parentId = task.parentId
+  taskForm.startDate = task.startDate
+  taskForm.endDate = task.endDate
   taskForm.dueDate = task.dueDate
   dialogVisible.value = true
 }
@@ -147,6 +151,8 @@ const resetForm = () => {
   taskForm.status = 'pending'
   taskForm.priority = 'medium'
   taskForm.parentId = null
+  taskForm.startDate = null
+  taskForm.endDate = null
   taskForm.dueDate = null
 }
 
@@ -211,10 +217,10 @@ onMounted(() => {
   <div class="task-management">
     <div class="task-header">
       <div class="header-title">
-        <el-icon :size="24" color="#409EFF"><Files/></el-icon>
+        <el-icon :size="24"><Files/></el-icon>
         <span>任务管理</span>
       </div>
-      <el-button type="primary" :icon="Plus" @click="openCreateDialog" size="large" round>
+      <el-button type="primary" :icon="Plus" @click="openCreateDialog" size="large">
         创建任务
       </el-button>
     </div>
@@ -228,31 +234,39 @@ onMounted(() => {
           <div class="task-card root-task" :class="{'completed': rootTask.status === 'completed'}">
             <div class="task-card-header">
               <div class="task-title-section">
-                <el-icon :size="20" color="#409EFF"><FolderOpened/></el-icon>
+                <el-icon :size="20"><FolderOpened/></el-icon>
                 <span class="task-title">{{ rootTask.title }}</span>
-                <el-tag :type="getStatusTag(rootTask.status)" size="small" effect="dark">
+                <el-tag :type="getStatusTag(rootTask.status)" size="small">
                   {{ statusOptions.find(s => s.value === rootTask.status)?.label }}
                 </el-tag>
               </div>
               <div class="task-actions">
-                <el-button :icon="Plus" @click="openCreateSubtaskDialog(rootTask)" circle size="small" type="success" title="添加子任务"/>
-                <el-button :icon="Edit" @click="openEditDialog(rootTask)" circle size="small" type="primary" title="编辑"/>
-                <el-button :icon="Delete" @click="deleteTask(rootTask)" circle size="small" type="danger" title="删除"/>
+                <el-button :icon="Plus" @click="openCreateSubtaskDialog(rootTask)" size="small" type="success" title="添加子任务"/>
+                <el-button :icon="Edit" @click="openEditDialog(rootTask)" size="small" type="primary" title="编辑"/>
+                <el-button :icon="Delete" @click="deleteTask(rootTask)" size="small" type="danger" title="删除"/>
               </div>
             </div>
             
             <div class="task-card-body">
               <div class="task-meta">
                 <span class="meta-item">
-                  <span class="meta-label">优先级:</span>
+                  <span class="meta-label">优先级</span>
                   <span>{{ getPriorityIcon(rootTask.priority) }} {{ priorityOptions.find(p => p.value === rootTask.priority)?.label }}</span>
                 </span>
+                <span class="meta-item" v-if="rootTask.startDate">
+                  <span class="meta-label">开始</span>
+                  <span>{{ formatDate(rootTask.startDate) }}</span>
+                </span>
+                <span class="meta-item" v-if="rootTask.endDate">
+                  <span class="meta-label">结束</span>
+                  <span>{{ formatDate(rootTask.endDate) }}</span>
+                </span>
                 <span class="meta-item" v-if="rootTask.dueDate">
-                  <span class="meta-label">截止:</span>
+                  <span class="meta-label">截止</span>
                   <span>{{ formatDate(rootTask.dueDate) }}</span>
                 </span>
                 <span class="meta-item" v-if="rootTask.children && rootTask.children.length > 0">
-                  <span class="meta-label">子任务:</span>
+                  <span class="meta-label">子任务</span>
                   <span>{{ rootTask.children.length }} 个</span>
                 </span>
               </div>
@@ -274,7 +288,7 @@ onMounted(() => {
                 <div class="subtask-card" :class="{'completed': subtask.status === 'completed'}">
                   <div class="subtask-header">
                     <div class="subtask-title-section">
-                      <el-icon :size="16" color="#67C23A"><Document/></el-icon>
+                      <el-icon :size="16"><Document/></el-icon>
                       <span class="subtask-title">{{ subtask.title }}</span>
                       <el-tag :type="getStatusTag(subtask.status)" size="small">
                         {{ statusOptions.find(s => s.value === subtask.status)?.label }}
@@ -285,9 +299,13 @@ onMounted(() => {
                       <el-button :icon="Delete" @click="deleteTask(subtask)" link type="danger" size="small">删除</el-button>
                     </div>
                   </div>
-                  <div class="subtask-meta" v-if="subtask.description || subtask.dueDate">
+                  <div class="subtask-meta">
                     <span v-if="subtask.description" class="subtask-desc">{{ subtask.description }}</span>
-                    <span v-if="subtask.dueDate" class="subtask-due">📅 {{ formatDate(subtask.dueDate) }}</span>
+                    <div class="subtask-dates">
+                      <span v-if="subtask.startDate" class="date-item">🕐 开始: {{ formatDate(subtask.startDate) }}</span>
+                      <span v-if="subtask.endDate" class="date-item">🏁 结束: {{ formatDate(subtask.endDate) }}</span>
+                      <span v-if="subtask.dueDate" class="date-item">⏰ 截止: {{ formatDate(subtask.dueDate) }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -298,7 +316,7 @@ onMounted(() => {
     </div>
 
     <!-- 创建/编辑任务对话框 -->
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="650px">
       <el-alert
           v-if="parentTaskForSubtask"
           :title="`为任务 '${parentTaskForSubtask.title}' 创建子任务`"
@@ -315,31 +333,53 @@ onMounted(() => {
           <el-input
               v-model="taskForm.description"
               type="textarea"
-              :rows="4"
+              :rows="3"
               placeholder="请输入任务描述"
           />
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="taskForm.status" placeholder="请选择状态" style="width: 100%">
-            <el-option
-                v-for="item in statusOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-            />
-          </el-select>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="状态">
+              <el-select v-model="taskForm.status" placeholder="请选择状态" style="width: 100%">
+                <el-option
+                    v-for="item in statusOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="优先级">
+              <el-select v-model="taskForm.priority" placeholder="请选择优先级" style="width: 100%">
+                <el-option
+                    v-for="item in priorityOptions"
+                    :key="item.value"
+                    :label="item.label"
+                    :value="item.value"
+                >
+                  <span>{{ getPriorityIcon(item.value) }} {{ item.label }}</span>
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="开始时间">
+          <el-date-picker
+              v-model="taskForm.startDate"
+              type="datetime"
+              placeholder="选择开始时间"
+              style="width: 100%"
+          />
         </el-form-item>
-        <el-form-item label="优先级">
-          <el-select v-model="taskForm.priority" placeholder="请选择优先级" style="width: 100%">
-            <el-option
-                v-for="item in priorityOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-            >
-              <span>{{ getPriorityIcon(item.value) }} {{ item.label }}</span>
-            </el-option>
-          </el-select>
+        <el-form-item label="结束时间">
+          <el-date-picker
+              v-model="taskForm.endDate"
+              type="datetime"
+              placeholder="选择结束时间"
+              style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="截止日期">
           <el-date-picker
@@ -365,7 +405,7 @@ onMounted(() => {
 <style scoped>
 .task-management {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f0f2f5;
   padding: 20px;
 }
 
@@ -373,21 +413,24 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 30px;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
-  backdrop-filter: blur(10px);
+  padding: 24px 30px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
 }
 
 .header-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 24px;
+  font-weight: 600;
   color: #303133;
+}
+
+.header-title .el-icon {
+  color: #409EFF;
 }
 
 .task-content {
@@ -397,17 +440,17 @@ onMounted(() => {
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .task-group {
-  animation: fadeIn 0.5s ease-in;
+  animation: fadeIn 0.3s ease-in;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -417,21 +460,21 @@ onMounted(() => {
 
 .task-card {
   background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
-  border-left: 5px solid #409EFF;
+  border-left: 4px solid #409EFF;
 }
 
 .task-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
 }
 
 .task-card.completed {
   border-left-color: #67C23A;
-  background: linear-gradient(to right, rgba(103, 194, 58, 0.05), white);
+  background: linear-gradient(to right, rgba(103, 194, 58, 0.03), white);
 }
 
 .task-card-header {
@@ -444,12 +487,16 @@ onMounted(() => {
 .task-title-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
 }
 
+.task-title-section .el-icon {
+  color: #409EFF;
+}
+
 .task-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   color: #303133;
   flex: 1;
@@ -466,7 +513,7 @@ onMounted(() => {
 
 .task-meta {
   display: flex;
-  gap: 24px;
+  gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
@@ -475,16 +522,22 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 13px;
   color: #606266;
-  padding: 6px 12px;
+  padding: 4px 12px;
   background: #f5f7fa;
-  border-radius: 8px;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
 }
 
 .meta-label {
   font-weight: 600;
   color: #909399;
+}
+
+.meta-label::after {
+  content: ':';
+  margin-left: 2px;
 }
 
 .task-description {
@@ -493,76 +546,76 @@ onMounted(() => {
   border-radius: 8px;
   color: #606266;
   line-height: 1.6;
-  margin-top: 12px;
+  margin-top: 8px;
+  border: 1px solid #e4e7ed;
 }
 
 .subtasks {
   margin-top: 20px;
-  padding-top: 20px;
-  border-top: 2px dashed #e4e7ed;
+  padding-top: 16px;
+  border-top: 1px dashed #dcdfe6;
 }
 
 .subtasks-header {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #909399;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .subtask-item {
   display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: 12px;
+  margin-bottom: 10px;
   position: relative;
 }
 
 .subtask-connector {
   position: relative;
-  width: 24px;
+  width: 20px;
   display: flex;
   justify-content: center;
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .connector-line {
   position: absolute;
   left: 50%;
-  top: 24px;
-  bottom: -12px;
+  top: 18px;
+  bottom: -10px;
   width: 2px;
-  background: linear-gradient(to bottom, #67C23A, #e4e7ed);
+  background: #dcdfe6;
   transform: translateX(-50%);
 }
 
 .connector-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: #67C23A;
-  border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(103, 194, 58, 0.3);
+  background: #409EFF;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
   z-index: 1;
 }
 
 .subtask-card {
   flex: 1;
-  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
-  border-radius: 12px;
-  padding: 16px;
-  border: 2px solid #e4e7ed;
+  background: white;
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid #e4e7ed;
   transition: all 0.3s ease;
 }
 
 .subtask-card:hover {
-  border-color: #67C23A;
-  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.15);
-  transform: translateX(4px);
+  border-color: #409EFF;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
 }
 
 .subtask-card.completed {
-  background: linear-gradient(135deg, rgba(103, 194, 58, 0.1) 0%, #ffffff 100%);
+  background: rgba(103, 194, 58, 0.05);
   border-color: #67C23A;
 }
 
@@ -579,8 +632,12 @@ onMounted(() => {
   flex: 1;
 }
 
+.subtask-title-section .el-icon {
+  color: #409EFF;
+}
+
 .subtask-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #303133;
 }
@@ -591,30 +648,40 @@ onMounted(() => {
 }
 
 .subtask-meta {
-  margin-top: 12px;
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 .subtask-desc {
-  font-size: 14px;
+  font-size: 13px;
   color: #606266;
   line-height: 1.5;
 }
 
-.subtask-due {
-  font-size: 13px;
+.subtask-dates {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.date-item {
+  font-size: 12px;
   color: #909399;
+  padding: 2px 8px;
+  background: #f5f7fa;
+  border-radius: 4px;
 }
 
 /* 暗色模式适配 */
 .dark .task-management {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #1a1a1a;
 }
 
 .dark .task-header {
-  background: rgba(42, 42, 42, 0.95);
+  background: #2c2c2c;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .dark .header-title {
@@ -623,7 +690,7 @@ onMounted(() => {
 
 .dark .task-card {
   background: #2c2c2c;
-  border-left-color: #409EFF;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .dark .task-title {
@@ -633,15 +700,17 @@ onMounted(() => {
 .dark .task-description {
   background: #363636;
   color: #c0c4cc;
+  border-color: #4c4c4c;
 }
 
 .dark .meta-item {
   background: #363636;
   color: #c0c4cc;
+  border-color: #4c4c4c;
 }
 
 .dark .subtask-card {
-  background: linear-gradient(135deg, #363636 0%, #2c2c2c 100%);
+  background: #2c2c2c;
   border-color: #4c4c4c;
 }
 
@@ -650,6 +719,11 @@ onMounted(() => {
 }
 
 .dark .subtask-desc {
+  color: #c0c4cc;
+}
+
+.dark .date-item {
+  background: #363636;
   color: #c0c4cc;
 }
 </style>
