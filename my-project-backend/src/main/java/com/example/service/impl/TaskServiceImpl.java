@@ -84,11 +84,27 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements Ta
             return "任务不存在";
         }
 
-        if (this.removeById(taskId)) {
-            taskLogService.createLog(taskId, userId, "delete", "删除任务: " + task.getTitle());
-            return null;
+        // 递归删除所有子任务
+        deleteTaskWithChildren(userId, taskId);
+        
+        taskLogService.createLog(taskId, userId, "delete", "删除任务: " + task.getTitle());
+        return null;
+    }
+    
+    /**
+     * 递归删除任务及其所有子任务
+     */
+    private void deleteTaskWithChildren(int userId, int taskId) {
+        // 先查找所有子任务
+        List<Task> subTasks = this.getSubTasks(userId, taskId);
+        
+        // 递归删除每个子任务
+        for (Task subTask : subTasks) {
+            deleteTaskWithChildren(userId, subTask.getId());
         }
-        return "删除任务失败";
+        
+        // 删除当前任务
+        this.removeById(taskId);
     }
 
     @Override

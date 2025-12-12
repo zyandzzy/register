@@ -21,7 +21,17 @@ public interface TaskLogService extends IService<TaskLog> {
     List<TaskLog> getTaskLogs(int taskId);
     
     /**
+     * 获取用户所有日志
+     */
+    List<TaskLog> getUserLogs(int userId);
+    
+    /**
      * 获取统计信息
      */
     Map<String, Object> getStatistics(int userId);
+    
+    /**
+     * 删除任务日志
+     */
+    String deleteLog(int userId, int logId);
 }

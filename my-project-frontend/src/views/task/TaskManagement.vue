@@ -10,6 +10,7 @@ const dialogVisible = ref(false)
 const dialogTitle = ref('创建任务')
 const isEdit = ref(false)
 const currentTaskId = ref(null)
+const parentTaskForSubtask = ref(null) // 用于创建子任务时记录父任务
 
 const taskForm = reactive({
   title: '',
@@ -68,13 +69,24 @@ const loadTasks = () => {
 const openCreateDialog = () => {
   dialogTitle.value = '创建任务'
   isEdit.value = false
+  parentTaskForSubtask.value = null
   resetForm()
+  dialogVisible.value = true
+}
+
+const openCreateSubtaskDialog = (parentTask) => {
+  dialogTitle.value = '创建子任务'
+  isEdit.value = false
+  parentTaskForSubtask.value = parentTask
+  resetForm()
+  taskForm.parentId = parentTask.id
   dialogVisible.value = true
 }
 
 const openEditDialog = (task) => {
   dialogTitle.value = '编辑任务'
   isEdit.value = true
+  parentTaskForSubtask.value = null
   currentTaskId.value = task.id
   taskForm.title = task.title
   taskForm.description = task.description
@@ -168,8 +180,21 @@ onMounted(() => {
 
       <el-table :data="tasks" v-loading="loading" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80"/>
-        <el-table-column prop="title" label="任务标题" min-width="200"/>
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip/>
+        <el-table-column prop="title" label="任务标题" min-width="200">
+          <template #default="scope">
+            <span v-if="scope.row.parentId" style="color: #909399; margin-right: 5px;">└─</span>
+            {{ scope.row.title }}
+          </template>
+        </el-table-column>
+        <el-table-column label="父任务" width="120">
+          <template #default="scope">
+            <el-tag v-if="scope.row.parentId" size="small" type="info">
+              ID: {{ scope.row.parentId }}
+            </el-tag>
+            <span v-else style="color: #909399;">根任务</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip/>
         <el-table-column label="状态" width="100">
           <template #default="scope">
             <el-tag :type="getStatusTag(scope.row.status)">
@@ -194,12 +219,15 @@ onMounted(() => {
             {{ formatDate(scope.row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="scope">
-            <el-button link type="primary" :icon="Edit" @click="openEditDialog(scope.row)">
+            <el-button link type="success" :icon="Plus" @click="openCreateSubtaskDialog(scope.row)" size="small">
+              子任务
+            </el-button>
+            <el-button link type="primary" :icon="Edit" @click="openEditDialog(scope.row)" size="small">
               编辑
             </el-button>
-            <el-button link type="danger" :icon="Delete" @click="deleteTask(scope.row)">
+            <el-button link type="danger" :icon="Delete" @click="deleteTask(scope.row)" size="small">
               删除
             </el-button>
           </template>
@@ -209,6 +237,13 @@ onMounted(() => {
 
     <!-- 创建/编辑任务对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px">
+      <el-alert
+          v-if="parentTaskForSubtask"
+          :title="`为任务 '${parentTaskForSubtask.title}' 创建子任务`"
+          type="info"
+          :closable="false"
+          style="margin-bottom: 20px"
+      />
       <el-form :model="taskForm" label-width="100px">
         <el-form-item label="任务标题" required>
           <el-input v-model="taskForm.title" placeholder="请输入任务标题"/>
@@ -222,7 +257,7 @@ onMounted(() => {
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="taskForm.status" placeholder="请选择状态">
+          <el-select v-model="taskForm.status" placeholder="请选择状态" style="width: 100%">
             <el-option
                 v-for="item in statusOptions"
                 :key="item.value"
@@ -232,7 +267,7 @@ onMounted(() => {
           </el-select>
         </el-form-item>
         <el-form-item label="优先级">
-          <el-select v-model="taskForm.priority" placeholder="请选择优先级">
+          <el-select v-model="taskForm.priority" placeholder="请选择优先级" style="width: 100%">
             <el-option
                 v-for="item in priorityOptions"
                 :key="item.value"
